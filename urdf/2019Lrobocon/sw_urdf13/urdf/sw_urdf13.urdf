@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.5.1-0-g916b5db  Build Version: 1.5.7152.31018
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="sw_urdf13">
+  <link
+    name="odom">
+    <inertial>
+      <origin
+        xyz="4.4407222368034E-15 2.21230076607051 0.0509566047108596"
+        rpy="1.57 0 0" />
+      <mass
+        value="636.134233847578" />
+      <inertia
+        ixx="1639.81286905023"
+        ixy="-36.6455977200006"
+        ixz="-0.782493840000301"
+        iyy="1639.91375187705"
+        iyz="-5.77195100431517"
+        izz="3261.44630486213" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.57 0 0" />
+      <geometry>
+        <mesh
+          filename="package://sw_urdf13/meshes/odom.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://sw_urdf13/meshes/odom.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="5.384E-18 0.092429 0.034927"
+        rpy="1.57 0 0" />
+      <mass
+        value="25.964" />
+      <inertia
+        ixx="0.33603"
+        ixy="-1.5806E-17"
+        ixz="-7.1291E-17"
+        iyy="0.59737"
+        iyz="-0.031208"
+        izz="0.43104" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="1.57 0 0" />
+      <geometry>
+        <mesh
+          filename="package://sw_urdf13/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.43922 0.43922 0.43922 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://sw_urdf13/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="1"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="odom" />
+    <child
+      link="base_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>

@@ -1,0 +1,46 @@
+xacro:单位（K（kg）M（meter）S(sencond)）
+常量定义：<xacro:property name="PI" value="3.1415926"/>
+常量使用：<origin xyz=0 0 0",rpy="${PI/2} 0 0 ">
+
+//类似于函数,ABC是输入参数
+宏定义：<xacro:macro name="name_" params="A B C">
+</xacro: macro>
+宏调用：类似于调用函数
+<name_ A="A_value" B="B_value" C="C_value"/>
+
+文件包含，类似于头文件
+<xacro:include filename="xacro文件的路径"/>
+or
+<xacro:include filename="$（find 功能包）/urdf/xacro/xacro文件名"/>
+
+定义颜色
+<material name="yellow">
+	<color rgba="1 0.4 0 1"/>
+</material
+<material name="black">
+	<color rgba="0 0 0 0.95"/>
+</material>
+<material name="grew">
+	<color rgba="0.75 0.75 0.75 1"/>
+</material>
+xacro 启动
+（1）xacro 转化成urdf ， launch启动
+rosrun xacro xacro xacro.py 文件名.xacro>文件名.urdf
+（2）xacro直接launch启动
+<arg name="model" default="$(find xacro)/xacro --inorder '$(find package_name)/urdf/xacro/xxx.xacro'"/>
+<param name="robot" command="$(arg model)"/>
+
+
+
+============================================================================================================
+gazebo:
+（！！任何XML文件中不能有中文！！）
+ros_control (上层和硬件底层连接)
+修改urdf（xacro文件）适应gazebo：
+1：添加interia 参数
+2：添加metial颜色
+3为joint添加传动装置
+{}
+ 
+
+

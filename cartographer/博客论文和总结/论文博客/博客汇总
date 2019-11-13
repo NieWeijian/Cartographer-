@@ -1,0 +1,21 @@
+--------------------//源码解读-----------------------------------
+（源码解析）
+https://zhuanlan.zhihu.com/p/48790984 cartographer
+
+
+
+--------------------//图优化slam---------------------------------
+（-基于图优化的激光SLAM方法）
+https://blog.csdn.net/weixin_44775887/article/details/94394891 Chapter6
+
+（从零开始一起学习SLAM | 理解图优化，一步步带你看懂g2o代码）
+https://www.cnblogs.com/CV-life/p/10286037.html 
+
+
+
+--------------------//调参----------------------------------------
+（cartographer探秘第一章之参数配置）
+https://blog.csdn.net/tiancailx/article/details/90757522
+
+（cartographer探秘第三章之对比实验）
+https://blog.csdn.net/tiancailx/article/details/92959451

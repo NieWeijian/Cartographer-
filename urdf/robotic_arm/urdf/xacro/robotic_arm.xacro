@@ -1,0 +1,305 @@
+<?xml version="1.0"?>
+<robot name="robotic_arm"  xmlns:xacro="http://www.ros.org/wiki/xacro">
+   
+    <!-- Macro for inertia matrix -->
+    <xacro:macro name="sphere_inertial_matrix" params="m r">
+        <inertial>
+            <mass value="${m}" />
+            <inertia ixx="${2*m*r*r/5}" ixy="0" ixz="0"
+                iyy="${2*m*r*r/5}" iyz="0" 
+                izz="${2*m*r*r/5}" />
+        </inertial>
+    </xacro:macro>
+
+    <xacro:macro name="cylinder_inertial_matrix" params="m r h">
+        <inertial>
+            <mass value="${m}" />
+            <inertia ixx="${m*(3*r*r+h*h)/12}" ixy = "0" ixz = "0"
+                iyy="${m*(3*r*r+h*h)/12}" iyz = "0"
+                izz="${m*r*r/2}" /> 
+        </inertial>
+    </xacro:macro>
+
+
+  
+    <material name="yellow">
+	    <color rgba="1 0.4 0 1"/>
+    </material>
+    <material name="black">
+    	<color rgba="0 0 0 0.95"/>
+    </material>
+    <material name="grew">
+        <color rgba="0.75 0.75 0.75 1"/>
+    </material>
+
+
+    <xacro:macro name="yaw_part">
+        <link name="base_link">
+               
+                <visual>
+                    <origin
+                            xyz="0 0 0.05"
+                            rpy="0 0 0" />
+                    <geometry>
+                        <cylinder length="0.1" radius="1.0" />
+                    </geometry>
+                </visual>
+
+
+                <collision>
+                    <origin
+                            xyz="0 0 0.04"
+                            rpy="0 0 0" />
+                    <geometry>
+                         <cylinder length="0.1" radius="0.9" />
+                    </geometry>
+                </collision>
+               <cylinder_inertial_matrix m="1" r="1.0" h="0.1"/>  
+            <inertial>
+                <origin
+                        xyz="0 0 0.1"
+                        rpy="0 0 0" />
+                <mass
+                        value="636.134233847578" />
+                <inertia
+                        ixx="1639.81286905023"
+                        ixy="-36.6455977200006"
+                        ixz="-0.782493840000301"
+                        iyy="1639.91375187705"
+                        iyz="-5.77195100431517"
+                        izz="3261.44630486213" />
+            </inertial>
+        </link>..
+       
+
+        <gazebo reference="base_link">
+            <material>Gazebo/Blue</material>
+        </gazebo>        
+     
+
+        <joint
+                name="yawl_joint"
+                type="continuous">
+            <origin
+                    xyz="0 0 0.1"
+                    rpy="0 0 0" />
+            <parent
+                    link="base_link" />
+            <child
+                    link="yawl_link" />
+            <axis
+                    xyz="0 0 1" />
+        </joint>
+
+        <transmission name="yawl_joint_trans">
+            <type> transmission_interface/SimpleTransmission </type>
+            <joint name="yawl_joint">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+            </joint>
+            <actuator name="yawl_joint_motor">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+                <mechanicalReduction> 1 </mechanicalReduction>
+            </actuator>
+        </transmission>
+ 
+    </xacro:macro>
+
+
+    <xacro:macro name="pitch_part1">
+        <link
+                name="yawl_link">
+           <cylinder_inertial_matrix m="1" r="0.05" h="0.01"/>
+            <inertial>
+                <origin
+                        xyz="0 0 0.1"
+                        rpy="0 0 0" />
+                <mass
+                        value="636.134233847578" />
+                <inertia
+                        ixx="1639.81286905023"
+                        ixy="-36.6455977200006"
+                        ixz="-0.782493840000301"
+                        iyy="1639.91375187705"
+                        iyz="-5.77195100431517"
+                        izz="3261.44630486213" />
+            </inertial>
+            <visual>
+                <origin
+                        xyz="0 0 0.005"
+                        rpy="0 0 0" />
+                <geometry>
+                    <cylinder radius="0.05" length="0.01" />
+                </geometry>
+            </visual>
+            <collision>
+                <origin
+                        xyz="0 0 0.004"
+                        rpy="0 0 0" />
+                <geometry>
+                    <cylinder radius="0.05" length="0.008" />
+                </geometry>
+            </collision>
+        </link>
+
+        <gazebo reference="yawl_link">
+            <material>Gazebo/Green</material>
+        </gazebo>  
+
+        <joint
+                name="pitch_joint1"
+                type="continuous">
+            <origin
+                    xyz="0 0 0.005"
+                    rpy="0 0 0" />
+            <parent
+                    link="yawl_link" />
+            <child
+                    link="pitch_link1" />
+            <axis
+                    xyz="1 0 0" />
+        </joint>
+     
+        <transmission name="pitch_joint1_trans">
+            <type> transmission_interface/SimpleTransmission</type>
+            <joint name="pitch_joint1">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+            </joint>
+            <actuator name="pitch_joint1_motor">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+                <mechanicalReduction> 1 </mechanicalReduction>
+            </actuator>
+        </transmission> 
+       
+    </xacro:macro>
+
+    <xacro:macro name="pitch_part2">
+        <link
+                    name="pitch_link1">
+               <cylinder_inertial_matrix m="1" r="0.05" h="0.5"/>
+            
+                <inertial>
+                <origin
+                        xyz="0 0 0.1"
+                        rpy="0 0 0" />
+                    <mass
+                            value="636.134233847578" />
+                    <inertia
+                            ixx="1639.81286905023"
+                            ixy="-36.6455977200006"
+                            ixz="-0.782493840000301"
+                            iyy="1639.91375187705"
+                            iyz="-5.77195100431517"
+                            izz="3261.44630486213" />
+                </inertial>
+                <visual>
+                    <origin
+                            xyz="0 0 0.25"
+                            rpy="0 0 0" />
+                    <geometry>
+                        <cylinder radius="0.05" length="0.5" />
+                    </geometry>
+                </visual>
+                <collision>
+                    <origin
+                            xyz="0 0 0.20"
+                            rpy="0 0 0" />
+                    <geometry>
+                        <cylinder radius="0.05" length="0.3" />
+                    </geometry>
+                </collision>
+        </link>
+     
+        <gazebo reference="pitch_link1">
+            <material>Gazebo/Gray</material>
+        </gazebo>    
+
+
+        <link name="pitch_link2">
+            <cylinder_inertial_matrix m="1" r="0.05" h="0.2"/>
+            <inertial>
+                <origin
+                        xyz="0 0 0.1"
+                        rpy="0 0 0" />
+                <mass
+                        value="636.134233847578" />
+                <inertia
+                        ixx="1639.81286905023"
+                        ixy="-36.6455977200006"
+                        ixz="-0.782493840000301"
+                        iyy="1639.91375187705"
+                        iyz="-5.77195100431517"
+                        izz="3261.44630486213" />
+            </inertial> 
+                       
+            <visual>
+                <origin
+                        xyz="0 0 0.1"
+                        rpy="0 0 0" />
+                <geometry>
+                    <cylinder radius="0.05" length="0.2"/>
+                </geometry>
+            </visual>
+            <collision>
+                <origin
+                        xyz="0 0 0.07"
+                        rpy="0 0 0" />
+                <geometry>
+                    <cylinder radius="0.05" length="0.15"/>
+                </geometry>
+            </collision>
+        </link>
+       
+        <gazebo reference="pitch_link2">
+            <material>Gazebo/White</material>
+        </gazebo>        
+     
+        <joint
+                name="pitch_joint2"
+                type="continuous">
+            <origin
+                    xyz="0 0 0.5"
+                    rpy="0 0 0" />
+            <parent
+                    link="pitch_link1" />
+            <child
+                    link="pitch_link2" />
+            <axis
+                    xyz="1 0 0" />
+        </joint>
+      
+        <transmission name="pitch_link2_trans">
+            <type> transmission_interface/SimpleTransmission </type>
+            <joint name="pitch_joint2">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+            </joint>
+            <actuator name="pitch_joint2_motor">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+                <mechanicalReduction> 1 </mechanicalReduction>
+            </actuator>
+        </transmission> 
+        
+    </xacro:macro>
+    
+    
+    <xacro:macro name="robotic_arm">
+        <yaw_part/>
+        <pitch_part1/>
+        <pitch_part2/>
+
+    
+        <gazebo>
+            <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+                <robotNamespace>/</robotNamespace>
+                <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+            </plugin>
+        </gazebo>
+       
+        
+    </xacro:macro>
+
+
+
+
+
+
+</robot>

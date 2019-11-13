@@ -1,0 +1,3 @@
+这个功能包是用来的建立省赛场地的，通过solidworks导入进来生成urdf文件和launch文件。
+solidworks导入时，注意link间坐标系的关系
+然后到进来后，可能需要在rviz里显示不是很好，需要修改具体再urdf

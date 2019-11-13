@@ -1,0 +1,38 @@
+
+=======================================博客=================================
+ros_serial:
+参考教程：http://wiki.ros.org/rosserial（官方）
+https://blog.csdn.net/wubaobao1993/article/details/70808959（CSDN）
+
+//ROS向节点传递参数的方法总结（rosrun，launch） + （参数服务器，main函数参数）
+https://blog.csdn.net/u013834525/article/details/88744327		
+
+======================================命令行================================
+//清理ros产生的log文件
+rosclean purge
+
+
+我们可以使用下列的命令压缩一个文件：
+
+        zip -r archive_name.zip filename    （-r是压缩文件）
+
+       下面是如果解压一个zip文件：
+
+        unzip archive_name.zip              （解压文件在当前文件下）
+
+        unzip archive_name.zip -d new_dir   （解压文件可以将文件解压缩至一个你指定的
+
+
+
+source install_isolated/setup.bash					//生效bash文件
+
+echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc 			//在bash文件里添加环境变量，以后就再打开窗口不用source了
+
+提取ROS的bag某个话题的数据转化成txt
+rostopic echo -b file_name.bag -p /topic_name > Txt_name.txt
+
+pwd									//打印当前目录
+
+ll /dev									//查看电脑外接端口使用情况
+
+

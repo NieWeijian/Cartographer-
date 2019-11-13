@@ -1,0 +1,49 @@
+在一条trajectory上取submap，每次取一个submap在地图上留下一个坐标轴
+trajectory
+	submap1
+	submap2
+	submap3
+	submap4
+	submap5	
+	    ..
+
+
+》submap和trajectory
+trajectory是机器人跑一圈时的轨迹，在这其中需要记录和维护传感器的数据。
+根据这个trajectory上传感器收集的数据，我们可以逐步构建出栅格化的地图Submap，
+但这个submap会随着时间或trajectory的增长而产生误差累积，
+但trajectory增长到超过一个阈值，则会新增一个submap。
+而PoseGraph是用来进行全局优化，将所有的Submap紧紧tie在一起，构成一个全局的Map，消除误差累积。
+
+
+
+
+本地建图：
+trajectort builder
+首先，我们来做一个整体上的理解，TrajectoryBuilder是用来创建一个trajectory的。
+所以，该类首先要保存trajectory上的传感器数据，从一个连续的多帧传感器数据中会抽取若干关键帧。
+一帧关键帧数据被称为trajectory上的一个节点(注意与ROS中的节点概念相区分)，一条trajectory由一串儿节点组成（在rviz上的180），所以TrajectoryBuilder要维护一个节点列表，同时，每一帧时的传感器数据相对于该Submap的局部坐标变换要已知；
+
+
+
+
+
+
+
+
+全局优化
+》pose_graph
+一个MapBuilder的类对应了一次建图过程，在整个建图过程中，用于全局优化的PoseGraph的对象只有一个，即pose_graph_，而这个变量是在构造函数中就生成了。
+在AddTrajectorybuilder函数中只需要检查一下pose_graph_是否符合PoseGraph2D或PoseGraph3D的情况。
+而一个trajectory对应了机器人运行一圈。
+在图建好后机器人可能多次运行。
+每一次运行都是新增一条trajectory，因此，需要动态地维护一个trajectory的列表。
+每生成一个trajectory时都是调用AddTrajectoryBuilder来创建的。
+
+
+》比较有用的关于Landmark的信息
+初看，这里似乎并没有包含跟Landmark相关的信息。但是给算法中添加Landmark提供了便利。那就是其中trajectory_options.has_initial_trajectory_pose()参数的设置，所以后面我们需要关注一下这些参数如何设置。
+
+该参数对应的含义是说如果要添加的轨迹有初始pose该如何处理——即，该轨迹及其建立起来的子图在全局中的变换矩阵是有初始值的。 这对应的情况就是比如说，我们检测到了一个Landmark。那么这时，我们可以新增加一条trajectory，增加新的trajectory时设置has.initial_trajectory_pose为真，然后根据机器人与Landmark之间的相对位姿推算机器人相对于世界坐标系的相对位姿。 以该位姿作为新增加的trajectory的初始位姿。这样情况下，在检测到Landmark时就能有效降低累积误差。
+
+PoseGraph:

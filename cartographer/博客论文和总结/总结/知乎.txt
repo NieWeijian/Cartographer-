@@ -1,0 +1,213 @@
+void Run() {
+  constexpr double kTfBufferCacheTimeInSeconds = 10.;
+  tf2_ros::Buffer tf_buffer{::ros::Duration(kTfBufferCacheTimeInSeconds)};//tf2_ros::Buffer是tf2 library的主要工具。Its main public API is defined by tf2_ros::BufferInterface. 
+  tf2_ros::TransformListener tf(tf_buffer);//subscribes to a appropriate topics to receive the transformation.
+  NodeOptions node_options;//NodeOptions在/cartographer_ros/cartographer_ros/cartographer/node_options.h中定义；该struct中包含了对一些基本参数的设置，比如接收tf的timeout时间设置、子图发布周期设置等
+  TrajectoryOptions trajectory_options;//TrajectoryOptions在/cartographer_ros/cartographer_ros/cartographer/trajectory_options.h中定义。
+  std::tie(node_options, trajectory_options) =
+      LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);//将LoadOptions获取到的参数值分别赋给node_options和trajectory_options. LoadOptions函数在node_options.h中定义。
+
+  //auto关键字：auto可以在声明变量的时候根据变量初始值的类型自动为此变量选择匹配的类型，类似的关键字还有decltype。举个例子：int a = 10;auto au_a = a;//自动类型推断，au_a为int类型； cout << typeid(au_a).name() << endl;
+  auto map_builder =
+      cartographer::common::make_unique<cartographer::mapping::MapBuilder>(
+          node_options.map_builder_options);//cartographer::common::make_unique定义在common文件夹下的make_unique.h文件中。
+  Node node(node_options, std::move(map_builder), &tf_buffer);//Node在/cartographer_ros/cartographer_ros/cartographer/node.h中定义；在该构造函数中订阅了很多传感器的topic。收集传感器数据
+  if (!FLAGS_load_state_filename.empty()) {
+    node.LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);//加载数据包数据
+  }
+
+  if (FLAGS_start_trajectory_with_default_topics) {
+    node.StartTrajectoryWithDefaultTopics(trajectory_options);
+  }
+
+  /**
+     * ros::spin() 将会进入循环， 一直调用回调函数chatterCallback(),
+     */
+  ::ros::spin();//ROS消息回调处理函数;
+
+  node.FinishAllTrajectories();
+  node.RunFinalOptimization();
+
+  if (!FLAGS_save_state_filename.empty()) {
+    node.SerializeState(FLAGS_save_state_filename);
+  }
+}
+
+
+-------------------------node.cc-------------------------------------
+Node::Node(
+    const NodeOptions& node_options,
+    std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
+    tf2_ros::Buffer* const tf_buffer)//函数后面的冒号：初始化列表（这个）
+    : node_options_(node_options),
+      map_builder_bridge_(node_options_, std::move(map_builder), tf_buffer) {//构造函数的主体
+  carto::common::MutexLocker lock(&mutex_);//设置一个互斥锁；
+  submap_list_publisher_ =
+      node_handle_.advertise<::cartographer_ros_msgs::SubmapList>(
+          kSubmapListTopic, kLatestOnlyPublisherQueueSize);//告知master节点，我们将要向kSubmapListTopic这个Topic上发布一个::cartographer_ros_msgs::SubmapList型的message，而第二个参数是publishing的缓存大小; 发布的该Topic即可允许其他节点获取到我们构建的Submap的信息
+  trajectory_node_list_publisher_ =
+      node_handle_.advertise<::visualization_msgs::MarkerArray>(
+          kTrajectoryNodeListTopic, kLatestOnlyPublisherQueueSize);//同样的，向kTrajectoryNodeListTopic这个Topic上发布了一个::visualization_msgs::MarkerArray型的message
+  landmark_poses_list_publisher_ =
+      node_handle_.advertise<::visualization_msgs::MarkerArray>(
+          kLandmarkPosesListTopic, kLatestOnlyPublisherQueueSize);//同样的，向kLandmarkPosesListTopic这个Topic上发布了一个::visualization_msgs::MarkerArray型的message
+  constraint_list_publisher_ =
+      node_handle_.advertise<::visualization_msgs::MarkerArray>(
+          kConstraintListTopic, kLatestOnlyPublisherQueueSize);//同样的，向kConstraintListTopic这个Topic上发布了一个::visualization_msgs::MarkerArray型的message
+
+
+  service_servers_.push_back(node_handle_.advertiseService(
+      kSubmapQueryServiceName, &Node::HandleSubmapQuery, this));//注册一个Service,Service的名字由kSubmapQueryServiceName给出。第二个参数是该Service绑定的函数句柄,即当有一个service的request时，由该函数进行response. 注册的这个service就对应了submap_query这个service。这是cartographer_node可以提供的一个service.
+  service_servers_.push_back(node_handle_.advertiseService(
+      kStartTrajectoryServiceName, &Node::HandleStartTrajectory, this));//同样的，注册Service名字为kStartTrajectoryServiceName，函数句柄为Node::HandleStartTrajectory
+  service_servers_.push_back(node_handle_.advertiseService(
+      kFinishTrajectoryServiceName, &Node::HandleFinishTrajectory, this));//同样的，注册Service名字为kFinishTrajectoryServiceName，函数句柄为Node::HandleFinishTrajectory
+  service_servers_.push_back(node_handle_.advertiseService(
+      kWriteStateServiceName, &Node::HandleWriteState, this));////同样的，注册Service名字为kWriteStateServiceName，函数句柄为Node::HandleWriteState
+
+  scan_matched_point_cloud_publisher_ =
+      node_handle_.advertise<sensor_msgs::PointCloud2>(
+          kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);//又发布了一个跟点云相关的Topic
+
+  //wall_timers在node.h中定义，是一个存储::ros::WallTimer类型的vector, 以下通过vector的push_back操作依次将五个::ros::WallTimer型对象插入这个vector的末尾。::ros::WallTimer这个类参见如下链接：http://docs.ros.org/jade/api/roscpp/html/classros_1_1WallTimer.html . 简单说，这是一个定时器，这里分别为如下的五个函数设置了定时器。参数就是node_options里的各项参数；
+  wall_timers_.push_back(node_handle_.createWallTimer(
+      ::ros::WallDuration(node_options_.submap_publish_period_sec),
+      &Node::PublishSubmapList, this));
+  wall_timers_.push_back(node_handle_.createWallTimer(
+      ::ros::WallDuration(node_options_.pose_publish_period_sec),
+      &Node::PublishTrajectoryStates, this));
+  wall_timers_.push_back(node_handle_.createWallTimer(
+      ::ros::WallDuration(node_options_.trajectory_publish_period_sec),
+      &Node::PublishTrajectoryNodeList, this));
+  wall_timers_.push_back(node_handle_.createWallTimer(
+      ::ros::WallDuration(node_options_.trajectory_publish_period_sec),
+      &Node::PublishLandmarkPosesList, this));
+  wall_timers_.push_back(node_handle_.createWallTimer(
+      ::ros::WallDuration(kConstraintPublishPeriodSec),
+      &Node::PublishConstraintList, this));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Node::LaunchSubscribers(const TrajectoryOptions& options,
+                             const cartographer_ros_msgs::SensorTopics& topics,
+                             const int trajectory_id) {
+  for (const std::string& topic : ComputeRepeatedTopicNames(
+           topics.laser_scan_topic, options.num_laser_scans)) {
+    subscribers_[trajectory_id].push_back(
+        {SubscribeWithHandler<sensor_msgs::LaserScan>(
+             &Node::HandleLaserScanMessage, trajectory_id, topic, &node_handle_,
+             this),
+         topic});
+  }//
+  for (const std::string& topic :
+       ComputeRepeatedTopicNames(topics.multi_echo_laser_scan_topic,
+                                 options.num_multi_echo_laser_scans)) {
+    subscribers_[trajectory_id].push_back(
+        {SubscribeWithHandler<sensor_msgs::MultiEchoLaserScan>(
+             &Node::HandleMultiEchoLaserScanMessage, trajectory_id, topic,
+             &node_handle_, this),
+         topic});
+  }
+  for (const std::string& topic : ComputeRepeatedTopicNames(
+           topics.point_cloud2_topic, options.num_point_clouds)) {
+    subscribers_[trajectory_id].push_back(
+        {SubscribeWithHandler<sensor_msgs::PointCloud2>(
+             &Node::HandlePointCloud2Message, trajectory_id, topic,
+             &node_handle_, this),
+         topic});
+  }
+
+  // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
+  // required.
+  if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
+      (node_options_.map_builder_options.use_trajectory_builder_2d() &&
+       options.trajectory_builder_options.trajectory_builder_2d_options()
+           .use_imu_data())) {
+    std::string topic = topics.imu_topic;
+    subscribers_[trajectory_id].push_back(
+        {SubscribeWithHandler<sensor_msgs::Imu>(&Node::HandleImuMessage,
+                                                trajectory_id, topic,
+                                                &node_handle_, this),
+         topic});
+  }
+
+  if (options.use_odometry) {
+    std::string topic = topics.odometry_topic;
+    subscribers_[trajectory_id].push_back(
+        {SubscribeWithHandler<nav_msgs::Odometry>(&Node::HandleOdometryMessage,
+                                                  trajectory_id, topic,
+                                                  &node_handle_, this),
+         topic});
+  }
+  if (options.use_nav_sat) {
+    std::string topic = topics.nav_sat_fix_topic;
+    subscribers_[trajectory_id].push_back(
+        {SubscribeWithHandler<sensor_msgs::NavSatFix>(
+             &Node::HandleNavSatFixMessage, trajectory_id, topic, &node_handle_,
+             this),
+         topic});
+  }
+  if (options.use_landmarks) {
+    std::string topic = topics.landmark_topic;
+    subscribers_[trajectory_id].push_back(
+        {SubscribeWithHandler<cartographer_ros_msgs::LandmarkList>(
+             &Node::HandleLandmarkMessage, trajectory_id, topic, &node_handle_,
+             this),
+         topic});
+  }
+}
+
+
+
+cartographer_node总结：
+
+cartographer启动以后，做了如下的工作：
+
+1. 注册并发布了5个Topic, 并为5个Topic分别设置了定时器函数，在定时器函数中定期向Topic上广播数据：
+
+|===1) Topic 1: kSubmapListTopic: 广播构建出来的submap的list
+
+|-----------发布数据的函数：Node::PublishSubmapList
+
+|-----------调用函数：map_builder_bridge_.GetSubmapList();
+
+|===2) Topic 2: kTrajectoryNodeListTopic：发布trajectory
+
+|-----------发布数据的函数：Node::PublishTrajectoryNodeList Node::PublishTrajectoryStates：
+
+|-----------调用函数：map_builder_bridge_.GetTrajectoryNodeList();
+
+|===3) Topic3: kLandmarkPoseListTopic
+
+|-----------发布数据的函数：Node::PublishLandmarkPosesList
+
+|-----------调用的函数：map_builder_bridge_.GetLandmarkPoseList()；
+
+|===4) Topic4: kConstraintListTopic
+
+|-----------发布数据的函数：Node::PublishConstraintList
+
+|-----------调用的函数：map_builder_bridge_.GetConstraintList()；
+
+|===5）Topic5: kScanMatchedPointCloudTopic
+
+|-----------发布数据的函数：Node::PublishTrajectoryStates
+
+|-----------调用的函数：map_builder_bridge_.GetTrajectoryStates()；
+
+这里需要额外注意的是Node::LaunchSubscribers这个函数。这个函数负责处理各个传感器函数。仔细读其中的每个处理函数，比如处理IMU的Node::HandleImuMessage函数，发现其实际调用的是map_builder_bridge_中的一个成员类sensor_bridge_ptr的函数来处理：sensor_bridge_ptr->HandleImuMessage
+
+
+
+

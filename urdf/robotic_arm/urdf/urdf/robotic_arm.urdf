@@ -1,0 +1,197 @@
+<robot name="robotic_arm">
+
+    <link
+            name="base_link">
+        <inertial>
+                <origin>
+                    xyz="0,0,0.0"
+                    rpy="1.57,0,0"
+                </origin>
+                <mass
+                        value="636.134233847578" />
+                <inertia
+                        ixx="1639.81286905023"
+                        ixy="-36.6455977200006"
+                        ixz="-0.782493840000301"
+                        iyy="1639.91375187705"
+                        iyz="-5.77195100431517"
+                        izz="3261.44630486213" />
+        </inertial>
+        <visual>
+            <origin
+                    xyz="0 0 0.05"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="1.0 1.0 0.1"/>
+            </geometry>
+        </visual>
+
+
+        <collision>
+            <origin
+                    xyz="0 0 0.04"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="1.0 1.0 0.1"/>
+            </geometry>
+        </collision>
+
+    </link>
+
+    <link
+            name="yawl_link">
+        <inertial>
+            <origin>
+                xyz="0,0,-0.0"
+                rpy="0,0,0"
+            </origin>
+            <mass
+                    value="636.134233847578" />
+            <inertia
+                    ixx="1639.81286905023"
+                    ixy="-36.6455977200006"
+                    ixz="-0.782493840000301"
+                    iyy="1639.91375187705"
+                    iyz="-5.77195100431517"
+                    izz="3261.44630486213" />
+        </inertial>
+        <visual>
+            <origin
+                    xyz="0 0 0.005"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.01"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin
+                    xyz="0 0 0.004"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.01"/>
+            </geometry>
+        </collision>
+    </link>
+
+
+
+
+
+    <link
+            name="pitch_link1">
+        <inertial>
+            <inertia
+                    ixx="1639.81286905023"
+                    ixy="-36.6455977200006"
+                    ixz="-0.782493840000301"
+                    iyy="1639.91375187705"
+                    iyz="-5.77195100431517"
+                    izz="3261.44630486213" />
+            <origin>
+                xyz="0,0,-0.01"
+                rpy="0,0,0"
+            </origin>
+            <mass
+                    value="636.134233847578" />
+        </inertial>
+        <visual>
+            <origin
+                    xyz="0 0 0.25"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.5"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin
+                    xyz="0 0 0.20"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.5"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <link
+            name="pitch_link2">
+        <inertial>
+            <inertia
+                    ixx="1639.81286905023"
+                    ixy="-36.6455977200006"
+                    ixz="-0.782493840000301"
+                    iyy="1639.91375187705"
+                    iyz="-5.77195100431517"
+                    izz="3261.44630486213" />
+            <origin>
+                xyz="0,0,0.0"
+                rpy="0,0,0"
+            </origin>
+            <mass
+                    value="636.134233847578" />
+        </inertial>
+        <visual>
+            <origin
+                    xyz="0 0 0.1"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.2"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin
+                    xyz="0 0 0.07"
+                    rpy="0 0 0" />
+            <geometry>
+                <box size="0.05 0.05 0.2"/>
+            </geometry>
+        </collision>
+    </link>
+
+
+
+    <joint
+            name="yawl_joint"
+            type="continuous">
+        <origin
+                xyz="0 0 0.1"
+                rpy="0 0 0" />
+        <parent
+                link="base_link" />
+        <child
+                link="yawl_link" />
+        <axis
+                xyz="0 0 1" />
+    </joint>
+
+
+
+    <joint
+            name="pitch_joint"
+            type="continuous">
+        <origin
+                xyz="0 0 0.005"
+                rpy="0 0 0" />
+        <parent
+                link="yawl_link" />
+        <child
+                link="pitch_link1" />
+        <axis
+                xyz="1 0 0" />
+    </joint>
+
+
+    <joint
+            name="pitch_joint2"
+            type="continuous">
+        <origin
+                xyz="0 0 0.5"
+                rpy="0 0 0" />
+        <parent
+                link="pitch_link1" />
+        <child
+                link="pitch_link2" />
+        <axis
+                xyz="1 0 0" />
+    </joint>
+
+</robot>
